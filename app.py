@@ -2,7 +2,6 @@
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-
 from config import Config
 
 # These extension instances are shared across the app and models
@@ -29,7 +28,7 @@ def create_app(test_config=None):
 
     # Import models here so SQLAlchemy is aware of them before migrations
     # or ``create_all`` run. Students will flesh these out in ``models.py``.
-    import models  # noqa: F401
+    from models import User,Post  # noqa: F401
 
     @app.route("/")
     def index():
@@ -39,29 +38,52 @@ def create_app(test_config=None):
 
     @app.route("/users", methods=["GET", "POST"])
     def users():
-        """List or create users.
-
-        TODO: Students should query ``User`` objects, serialize them to JSON,
-        and handle incoming POST data to create new users.
-        """
-
-        return (
-            jsonify({"message": "TODO: implement user listing/creation"}),
-            501,
-        )
+        if request.method=="GET":
+            users=User.query.all()
+            users_js = []
+            for user in users:
+                 users_js.append({
+                    "id": user.id,
+                    "username": user.username,
+            })
+            
+            return jsonify(users_js)
+        
+        elif request.method == "POST":
+             user_data = request.get_json()
+             new_user = User(username=user_data["username"])
+             db.session.add(new_user)
+             db.session.commit()
+             return jsonify({"id": new_user.id, "username": new_user.username})
 
     @app.route("/posts", methods=["GET", "POST"])
     def posts():
-        """List or create posts.
-
-        TODO: Students should query ``Post`` objects, include user data, and
-        allow creating posts tied to a valid ``user_id``.
-        """
-
-        return (
-            jsonify({"message": "TODO: implement post listing/creation"}),
-            501,
-        )
+        if request.method=="GET":
+            posts=Post.query.all()
+            posts_js = []
+            for post in posts:
+                 posts_js.append({
+                     "id": post.id,
+                     "title":post.title,
+                     "content":post.content,
+                     "user_id":post.user_id
+            })
+            return jsonify(posts_js)
+        elif request.method == "POST":
+            post_data = request.get_json()
+            new_post = Post(
+                title=post_data["title"],
+                content=post_data["content"],
+                user_id=post_data["user_id"]
+            )
+            db.session.add(new_post)
+            db.session.commit()
+            return jsonify({
+                "id": new_post.id,
+                "title": new_post.title,
+                "content": new_post.content,
+                "user_id": new_post.user_id
+            })
 
     return app
 
